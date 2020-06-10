@@ -1,10 +1,12 @@
 from ulauncher.api.client.Extension import Extension
 from ulauncher.api.client.EventListener import EventListener
-from ulauncher.api.shared.event import KeywordQueryEvent, SystemExitEvent,PreferencesUpdateEvent, PreferencesEvent
+from ulauncher.api.shared.event import KeywordQueryEvent, SystemExitEvent, PreferencesUpdateEvent, PreferencesEvent, ItemEnterEvent
 from ulauncher.api.shared.item.ExtensionResultItem import ExtensionResultItem
 from ulauncher.api.shared.action.RenderResultListAction import RenderResultListAction
 from ulauncher.api.shared.action.OpenUrlAction import OpenUrlAction
+from ulauncher.api.shared.action.ExtensionCustomAction import ExtensionCustomAction
 from history import FirefoxHistory
+import webbrowser
 
 class FirefoxHistoryExtension(Extension):
     def __init__(self):
@@ -16,6 +18,7 @@ class FirefoxHistoryExtension(Extension):
         self.subscribe(SystemExitEvent,SystemExitEventListener())
         self.subscribe(PreferencesEvent,PreferencesEventListener())
         self.subscribe(PreferencesUpdateEvent,PreferencesUpdateEventListener())
+        self.subscribe(ItemEnterEvent, ItemEnterEventListener())
 
 class PreferencesEventListener(EventListener):
     def on_event(self,event,extension):
@@ -48,6 +51,11 @@ class PreferencesUpdateEventListener(EventListener):
 class SystemExitEventListener(EventListener):
     def on_event(self,event,extension):
         extension.fh.close()
+
+class ItemEnterEventListener(EventListener):
+    def on_event(self, event, extension):
+        url = event.get_data()
+        webbrowser.get('firefox').open_new_tab(url)
 
 class KeywordQueryEventListener(EventListener):
     def on_event(self, event, extension):
@@ -82,10 +90,12 @@ class KeywordQueryEventListener(EventListener):
                 #    title = hostname
                 #else:
                 #    title = link[1]
+
             items.append(ExtensionResultItem(icon='images/icon.png',
-                                            name=title,
-                                            description=url,
-                                            on_enter=OpenUrlAction(url)))
+                                             name=title,
+                                             description=url,
+                                             on_enter=ExtensionCustomAction(url),
+                                             on_alt_enter=OpenUrlAction(url)))
 
         return RenderResultListAction(items)
 
